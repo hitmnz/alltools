@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Simplicity</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootswatch@5.3.3/dist/litera/bootstrap.min.css" rel="stylesheet">
+    <style>
+        textarea {
+            font-family: monospace;
+        }
+    </style>
+</head>
+<body class="p-4">
+    <div class="container-fluid">
+        <h1 class="mb-4">Simplicity</h1>
+
+        <div class="d-flex gap-3">
+            <div class="mb-3 flex-grow-1">
+                <label for="templateFile" class="form-label">Plantilla (.txt):</label>
+                <input class="form-control" type="file" id="templateFile" accept=".txt">
+            </div>
+            <div class="mb-3 flex-grow-1">
+                <label for="csvFile" class="form-label">Variables (.csv):</label>
+                <input class="form-control" type="file" id="csvFile" accept=".csv">
+            </div>
+            <div class="d-flex align-items-end mb-3">
+                <button type="button" class="btn btn-secondary" onclick="clearAll()">Clear</button>
+            </div>
+        </div>
+
+        <h4>Plantilla</h4>
+        <textarea id="template" class="form-control mb-3" rows="10" placeholder="Escribe tu plantilla aquí..."></textarea>
+
+        <h4>Variables</h4>
+        <div id="variable-groups" class="mb-3"></div>
+        <button type="button" class="btn btn-outline-primary mb-4" onclick="addGroup()">+ Añadir grupo de variables</button>
+
+        <h4>Resultado</h4>
+        <textarea id="result" class="form-control mb-2" rows="10" readonly></textarea>
+        <div>
+            <button class="btn btn-outline-primary me-2" onclick="copyResult()">Copiar</button>
+            <button class="btn btn-outline-success" onclick="saveResult()">Guardar</button>
+        </div>
+    </div>
+    <script>
+        const variablesUrl = "{{ url_for('simplicity.extract_variables') }}";
+        const renderUrl = "{{ url_for('simplicity.render_template_endpoint') }}";
+    </script>
+    <script>
+        const templateBox = document.getElementById("template");
+        const resultBox = document.getElementById("result");
+        const groupsDiv = document.getElementById("variable-groups");
+    
+        let currentVariables = [];
+    
+        templateBox.addEventListener("input", () => {
+            const template = templateBox.value.trim();
+            if (!template) {
+                clearAll();
+                return;
+            }
+    
+            fetch(variablesUrl, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ template })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.variables) {
+                    currentVariables = data.variables;
+                    groupsDiv.innerHTML = "";
+                    const vars = {};
+                    currentVariables.forEach(v => vars[v] = "");
+                    addGroup(vars);
+                    render();
+                }
+            })
+            .catch(err => {
+                console.error("Error detectando variables:", err);
+            });
+        });
+    
+        document.getElementById("templateFile").addEventListener("change", e => {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = e => {
+                templateBox.value = e.target.result;
+                templateBox.dispatchEvent(new Event("input"));
+            };
+            reader.readAsText(file);
+        });
+    
+        document.getElementById("csvFile").addEventListener("change", e => {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = e => {
+                const lines = e.target.result.split("\n").filter(l => l.trim());
+                const headers = lines[0].split(/[,;\t]/).map(h => h.trim());
+                currentVariables = headers;
+                groupsDiv.innerHTML = "";
+    
+                for (let i = 1; i < lines.length; i++) {
+                    const values = lines[i].split(/[,;\t]/);
+                    const group = {};
+                    headers.forEach((h, idx) => {
+                        group[h] = values[idx] || "";
+                    });
+                    addGroup(group);
+                }
+    
+                render();
+            };
+            reader.readAsText(file);
+        });
+    
+        function addGroup(prefilled = null) {
+            const wrapper = document.createElement("div");
+            wrapper.className = "row mb-3 align-items-end";
+    
+            const varsToUse = prefilled || Object.fromEntries(currentVariables.map(v => [v, ""]));
+    
+            Object.keys(varsToUse).forEach(key => {
+                const div = document.createElement("div");
+                div.className = "col-md-4 mb-2";
+                div.innerHTML = `
+                    <label class="form-label">${key}</label>
+                    <input class="form-control" name="${key}" value="${varsToUse[key] || ''}" />
+                `;
+                wrapper.appendChild(div);
+            });
+    
+            const removeBtn = document.createElement("div");
+            removeBtn.className = "col-auto mb-2";
+            removeBtn.innerHTML = `
+                <button type="button" class="btn btn-outline-danger btn-sm">❌</button>
+            `;
+            removeBtn.querySelector("button").addEventListener("click", () => {
+                wrapper.remove();
+                render();
+            });
+    
+            wrapper.appendChild(removeBtn);
+            groupsDiv.appendChild(wrapper);
+    
+            wrapper.querySelectorAll("input").forEach(inp => {
+                inp.addEventListener("input", render);
+            });
+    
+            render();
+        }
+    
+        function getGroups() {
+            const rows = groupsDiv.querySelectorAll(".row");
+            return Array.from(rows).map(row => {
+                const vars = {};
+                row.querySelectorAll("input").forEach(input => {
+                    vars[input.name] = input.value;
+                });
+                return vars;
+            });
+        }
+    
+        function render() {
+            const template = templateBox.value.trim();
+            if (!template) {
+                resultBox.value = "";
+                return;
+            }
+    
+            const groups = getGroups();
+    
+            fetch(renderUrl, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ template, groups })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.results) {
+                    resultBox.value = data.results.join("\n\n---\n\n");
+                }
+            })
+            .catch(err => {
+                console.error("Error generando resultado:", err);
+                resultBox.value = "[Error generando resultado]";
+            });
+        }
+    
+        function clearAll() {
+            // Limpiar los campos de plantilla, variables y resultado
+            templateBox.value = ""; 
+            groupsDiv.innerHTML = "";
+            resultBox.value = "";
+            currentVariables = [];
+
+            // Limpiar el campo de archivo de plantilla (input de tipo file)
+            document.getElementById("templateFile").value = ""; // <-- esta línea borra el archivo seleccionado
+            document.getElementById("csvFile").value = ""; // <-- esta línea borra el fichero csv seleccionado
+}
+
+
+    
+        function copyResult() {
+            navigator.clipboard.writeText(resultBox.value)
+                .then(() => alert("Texto copiado al portapapeles"))
+                .catch(() => alert("Error al copiar"));
+        }
+    
+        function saveResult() {
+            const blob = new Blob([resultBox.value], { type: "text/plain" });
+            const link = document.createElement("a");
+            link.href = URL.createObjectURL(blob);
+            link.download = "resultado.txt";
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+    </script>
+    
+</body>
+</html>
