@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>JSON a XML Converter</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootswatch@5.3.3/dist/litera/bootstrap.min.css" rel="stylesheet">
+</head>
+<body class="bg-light">
+  <div class="container py-4">
+    <h1 class="mb-4 text-center">Conversor JSON → XML</h1>
+    <form method="post" id="converterForm">
+      <div class="row">
+        <div class="col-md-6">
+          <label class="form-label">Pegue su JSON:</label>
+          <textarea id="json_input" name="json_input" class="form-control" rows="20">{{ json_input }}</textarea>
+        </div>
+        <div class="col-md-6">
+          <label class="form-label">Resultado en XML:</label>
+          <textarea id="xml_output" readonly class="form-control bg-dark text-light" rows="20">{{ xml_output }}</textarea>
+        </div>
+      </div>
+      <div class="text-center mt-3 d-flex justify-content-center gap-2">
+        <button type="submit" class="btn btn-primary px-4">Convertir</button>
+        <button type="button" id="clearBtn" class="btn btn-secondary px-4">Clear</button>
+      </div>
+    </form>
+  </div>
+
+  <script>
+    document.getElementById("clearBtn").addEventListener("click", function() {
+      document.getElementById("json_input").value = "";
+      document.getElementById("xml_output").value = "";
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+{% block content %}
+<h2 class="mb-3">Comparador de configuraciones QoS</h2>
+<a href="/qos" class="btn btn-primary mt-3">← Volver a la Calculadora</a>
+<form method="post" action="{{ url_for('qos.compare') }}">
+  <div class="row">
+    <div class="col-md-6 drop-zone" id="drop-zone-a">
+      <h4>Configuración A</h4>
+      <input class="form-control mb-2" name="total_a" id="total_a" placeholder="Total Download (Kbps)">
+      <input class="form-control mb-2" name="voice_a" id="voice_a" placeholder="Voice Download (Kbps)">
+      <input class="form-control mb-2" name="video_a" id="video_a" placeholder="Video Download (Kbps)">
+      <input class="form-control mb-2" name="platinum_a" id="platinum_a" placeholder="Data-Platinum Download (Kbps)">
+      <input class="form-control mb-2" name="gold_a" id="gold_a" placeholder="Data-Gold Download (Kbps)">
+      <input class="form-control mb-2" name="silver_a" id="silver_a" placeholder="Data-Silver Download (Kbps)">
+      <input class="form-control mb-2" name="bronze_a" id="bronze_a" placeholder="Data-Bronze Download (Kbps)">
+    </div>
+    <div class="col-md-6 drop-zone" id="drop-zone-b">
+      <h4>Configuración B</h4>
+      <input class="form-control mb-2" name="total_b" id="total_b" placeholder="Total Download (Kbps)">
+      <input class="form-control mb-2" name="voice_b" id="voice_b" placeholder="Voice Download (Kbps)">
+      <input class="form-control mb-2" name="video_b" id="video_b" placeholder="Video Download (Kbps)">
+      <input class="form-control mb-2" name="platinum_b" id="platinum_b" placeholder="Data-Platinum Download (Kbps)">
+      <input class="form-control mb-2" name="gold_b" id="gold_b" placeholder="Data-Gold Download (Kbps)">
+      <input class="form-control mb-2" name="silver_b" id="silver_b" placeholder="Data-Silver Download (Kbps)">
+      <input class="form-control mb-2" name="bronze_b" id="bronze_b" placeholder="Data-Bronze Download (Kbps)">
+    </div>
+  </div>
+  <div class="text-center mt-3">
+    <button type="submit" class="btn btn-primary">Comparar</button>
+  </div>
+</form>
+
+{% if comparison %}
+<h3 class="mt-4">Resultado</h3>
+<table class="table table-bordered text-center">
+  <thead>
+    <tr>
+      <th>Clase</th>
+      <th>Config A (Kbps)</th>
+      <th>Config B (Kbps)</th>
+      <th>Estado</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for row in comparison %}
+    <tr class="{{ 'table-success' if row.equal else 'table-danger' }}">
+      <td>{{ row.name }}</td>
+      <td class="copy-cell">{{ row.a }}</td>
+      <td class="copy-cell">{{ row.b }}</td>
+      <td>{{ '✅ ' if row.equal else '❌' }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endif %}
+
+<script>
+function setupDropZone(zoneId, prefix) {
+  const zone = document.getElementById(zoneId);
+  zone.addEventListener("dragover", (e) => {
+    e.preventDefault();
+    zone.classList.add("border", "border-primary");
+  });
+  zone.addEventListener("dragleave", () => {
+    zone.classList.remove("border", "border-primary");
+  });
+  zone.addEventListener("drop", (e) => {
+    e.preventDefault();
+    zone.classList.remove("border", "border-primary");
+    const text = e.dataTransfer.getData("text");
+    if (!text) return;
+    const regexMap = {
+      voice: /Voice Download Bandwidth, Kbps\s*\n\s*(\d+)/i,
+      video: /Video Download Bandwidth, Kbps\s*\n\s*(\d+)/i,
+      platinum: /Data-Platinum Download Bandwidth, Kbps\s*\n\s*(\d+)/i,
+      gold: /Data-Gold Download Bandwidth, Kbps\s*\n\s*(\d+)/i,
+      silver: /Data-Silver Download Bandwidth, Kbps\s*\n\s*(\d+)/i,
+      bronze: /Data-Bronze Download Bandwidth, Kbps\s*\n\s*(\d+)/i,
+      total: /Total Download Bandwidth, Kbps\s*\n\s*(\d+)/i,
+    };
+    for (const [key, regex] of Object.entries(regexMap)) {
+      const m = text.match(regex);
+      if (m) {
+        const el = document.getElementById(`${key}_${prefix}`);
+        if (el) el.value = m[1];
+      }
+    }
+  });
+}
+setupDropZone('drop-zone-a','a');
+setupDropZone('drop-zone-b','b');
+</script>
+{% endblock %}
