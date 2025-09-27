@@ -2,6 +2,7 @@ from flask import Flask, Blueprint, render_template, request, redirect, url_for
 
 app = Blueprint("qos", __name__, template_folder="templates")
 
+
 def get_granularity(total_kbps, card_type):
     if card_type == "1g":
         table = [
@@ -27,8 +28,8 @@ def get_granularity(total_kbps, card_type):
             (5222400, 20480),
             (10000000, 40960),
         ]
-    else:
-        table = [(ub*10, gran*10) for (ub, gran) in [
+    else:  # 100g
+        table = [(ub * 10, gran * 10) for (ub, gran) in [
             (10240, 40),
             (20480, 80),
             (40960, 160),
@@ -45,14 +46,22 @@ def get_granularity(total_kbps, card_type):
             return gran
     return table[-1][1]
 
-def adjust_value_for_granularity(name, value_kbps, gran_enabled, gran_kbps):
-    v = int(round(value_kbps))
-    if gran_enabled and gran_kbps and gran_kbps > 0:
-        v = (v // gran_kbps) * gran_kbps
-        if name.lower().startswith("voice"):
-            v = ((v + 7) // 8) * 8
-        else:
-            v = (v // 8) * 8
+
+def adjust_value_for_granularity(name, value_kbps, gran_enabled=None, gran_kbps=None):
+    """
+    Ajusta una clase individual a la granularidad de policer (8 Kbps).
+    - Conserva la firma para compatibilidad con llamadas existentes.
+    - NO aplica la granularidad del shaper (gran_kbps); eso se aplica solamente al total (shaper).
+    - Voice -> round UP al múltiplo de 8
+    - Resto -> round DOWN al múltiplo de 8
+    """
+    v = int(round(value_kbps or 0))
+    if name.lower().startswith("voice"):
+        # Voice: redondear hacia arriba al múltiplo de 8
+        v = ((v + 7) // 8) * 8
+    else:
+        # Resto: redondear hacia abajo al múltiplo de 8
+        v = (v // 8) * 8
     return int(v)
 
 @app.route("/", methods=["GET", "POST"])
@@ -63,7 +72,7 @@ def index():
     defaults = {k: form.get(k, "") for k in [
         "total_download", "voice_download", "video_download", "data_platinum_download",
         "data_gold_download", "data_silver_download", "data_bronze_download",
-        "granularity_enabled", "card_type"
+        "granularity_enabled", "card_type", "gestion", "tipo_acceso"
     ]}
     if request.method == "POST":
         if "clear" in form:
@@ -81,8 +90,12 @@ def index():
                 total = voice + video + platinum + gold + silver + bronze
 
             gran_enabled = "granularity_enabled" in form
-            card_type = form.get("card_type") or "1g"
+            card_type = form.get("card_type")
+            gestion = form.get("gestion")  # gestionado / no_gestionado
+            tipo_acceso = form.get("tipo_acceso")  # directo / indirecto
+
             gran_kbps = get_granularity(total, card_type) if gran_enabled else None
+            total_adjusted = (int(total) // gran_kbps) * gran_kbps if gran_enabled else int(total)
 
             raw = [
                 ("Voice", voice),
@@ -93,30 +106,47 @@ def index():
                 ("Data-Bronze", bronze)
             ]
 
-            management_kbps = 64  # fijo para gestión
-
-            # Ajustar total granularidad redondeado hacia abajo
-            total_adjusted = (int(total) // gran_kbps) * gran_kbps if gran_enabled else int(total)
-
-            # Ajustar todas clases excepto la última
-            raw_except_last = raw[:-1]
-            last_class_name, _ = raw[-1]
-
             adjusted_values = []
-            used_bandwidth = 0
-
-            for name, kbps in raw_except_last:
+            for name, kbps in raw:
                 adj = adjust_value_for_granularity(name, kbps, gran_enabled, gran_kbps)
                 adjusted_values.append((name, adj))
-                used_bandwidth += adj
+                
+            # reglas de management
+            management_kbps = 0
+            if gestion == "gestionado":
+                if tipo_acceso == "indirecto":
+                    adjusted_values = [(n, v - management_kbps if n == "Data-Bronze" else v) for n, v in adjusted_values]
+                    management_kbps = 16  # 16k para indirecto gestionado
+                    bronze = next((v for n, v in adjusted_values if n == "Data-Bronze"), 0)
+                    if bronze < 80:
+                        status = "error: Bronze en indirecto gestionado debe ser >= 80 Kbps"
+                else:
+                    management_kbps = 64  # 64k resto gestionados
+                    bronze = next((v for n, v in adjusted_values if n == "Data-Bronze"), 0)
+                    if bronze < 128:
+                        status = "error: Bronze en directo gestionado debe ser >= 128 Kbps"
+                # resta management del bronze
+                adjusted_values = [(n, v - management_kbps if n == "Data-Bronze" else v) for n, v in adjusted_values]
+            elif gestion == "no_gestionado":
+                # mínimo bronze 128k
+                bronze = next((v for n, v in adjusted_values if n == "Data-Bronze"), 0)
+                if bronze < 128:
+                    status = "error: Bronze en no gestionado debe ser >= 128 Kbps"
+                management_kbps = 64
+                adjusted_values = [(n, v - management_kbps if n == "Data-Bronze" else v) for n, v in adjusted_values]
+            else:
+                # estándar
+                management_kbps = 64
+                adjusted_values = [(n, v - management_kbps if n == "Data-Bronze" else v) for n, v in adjusted_values]
 
-            # Calcular última clase como resto respetando gestión
-            last_class_adj = total_adjusted - management_kbps - used_bandwidth
-            if last_class_adj < 0:
-                last_class_adj = 0
-            adjusted_values.append((last_class_name, last_class_adj))
+            gran_diff = int(total) - int(total_adjusted)
 
-            # Construir lista clases con porcentaje, burst, etc.
+            if gran_diff > 0:
+                adjusted_values = [(n, v - gran_diff if n == "Data-Bronze" else v) for n, v in adjusted_values]            
+
+            suma_clases = sum(val for _, val in adjusted_values) + management_kbps
+
+            # Construir lista clases
             classes = []
             for name, adj in adjusted_values:
                 percent = (adj / total_adjusted * 100) if total_adjusted else 0
@@ -128,7 +158,6 @@ def index():
                     "peak_burst": round(adj * 0.375 * 1000)
                 })
 
-            # Añadir gestión como clase aparte en tabla resultados
             classes.append({
                 "name": "Management",
                 "kbps": management_kbps,
@@ -140,12 +169,12 @@ def index():
             total_burst = round(total_adjusted * 0.1875 * 1000)
             total_peak = round(total_adjusted * 0.375 * 1000)
 
-            # Estado correcto si suma clases + gestión == total_adjusted
-            suma_clases = sum(val for _, val in adjusted_values) + management_kbps
-            status = "correcto" if abs(suma_clases - total_adjusted) < 1e-6 else "incorrecto"
+            if not status:  # solo marcar correcto/incorrecto si no hay error de reglas
+                status = "correcto" if abs(suma_clases - total_adjusted) < 1e-6 else "incorrecto"
 
+            total_final = int(total_adjusted if gran_enabled else total)
             result = {
-                "total": int(total_adjusted),
+                "total": total_final,
                 "classes": classes,
                 "burst_size": total_burst,
                 "peak_burst": total_peak,
@@ -158,12 +187,13 @@ def index():
             for k in defaults:
                 defaults[k] = form.get(k, defaults[k])
             defaults["granularity_enabled"] = "on" if gran_enabled else ""
-            defaults["total_download"] = str(int(total_adjusted))
+            #defaults["total_download"] = str(total_final)
 
         except Exception as e:
             status = f"error: {e}"
 
     return render_template("qos.html", result=result, status=status, defaults=defaults)
+
 
 @app.route("/compare", methods=["GET", "POST"])
 def compare():

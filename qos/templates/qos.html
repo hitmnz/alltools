@@ -43,9 +43,30 @@
           <div class="mb-3">
             <label class="form-label">Tipo de tarjeta</label>
             <select class="form-select" name="card_type">
+              <option value="" {% if not defaults.card_type %}selected{% endif %}>-- Selecionar --</option>
               <option value="1g" {% if defaults.card_type=='1g' %}selected{% endif %}>1g</option>
               <option value="10g" {% if defaults.card_type=='10g' %}selected{% endif %}>10g</option>
               <option value="100g" {% if defaults.card_type=='100g' %}selected{% endif %}>100g</option>
+            </select>
+          </div>
+
+          <!-- NUEVO: Selección de Gestión -->
+          <div class="mb-3">
+            <label class="form-label">Gestión</label>
+            <select class="form-select" name="gestion">
+              <option value="" {% if not defaults.gestion %}selected{% endif %}>-- Seleccionar --</option>
+              <option value="gestionado" {% if defaults.gestion=='gestionado' %}selected{% endif %}>Gestionado</option>
+              <option value="no_gestionado" {% if defaults.gestion=='no_gestionado' %}selected{% endif %}>No gestionado</option>
+            </select>
+          </div>
+
+          <!-- NUEVO: Selección de Tipo de acceso -->
+          <div class="mb-3">
+            <label class="form-label">Tipo de acceso</label>
+            <select class="form-select" name="tipo_acceso">
+              <option value="" {% if not defaults.tipo_acceso %}selected{% endif %}>-- Seleccionar --</option>
+              <option value="directo" {% if defaults.tipo_acceso=='directo' %}selected{% endif %}>Directo</option>
+              <option value="indirecto" {% if defaults.tipo_acceso=='indirecto' %}selected{% endif %}>Indirecto</option>
             </select>
           </div>
 
@@ -87,14 +108,18 @@
             </tbody>
           </table>
         </div>
+        <div class="mb-2"><strong>Total:</strong> <span class="copy-cell">{{ result.total|round|int }}</span> Kbps</div>
+        <div class="mb-2"><strong>Total Burst-size:</strong> <span class="copy-cell">{{ result.burst_size }}</span></div>
+        <div class="mb-2"><strong>Total Peak-burst:</strong> <span class="copy-cell">{{ result.peak_burst }}</span></div>
         {% if result.gran_enabled %}
         <div class="mb-2"><strong>Granularidad aplicada:</strong> {{ result.gran_kbps }} Kbps (tarjeta {{ result.card_type }})</div>
         {% endif %}
-
         {% if status == "correcto" %}
           <div class="alert alert-success">✔ La suma coincide con el total ({{ result.suma }} Kbps)</div>
         {% elif status == "incorrecto" %}
           <div class="alert alert-danger">✘ La suma ({{ result.suma }} Kbps) no coincide con el total ({{ result.total }} Kbps)</div>
+        {% elif status and status.startswith("error") %}
+          <div class="alert alert-danger">⚠ {{ status }}</div>
         {% endif %}
       </div>
     </div>
@@ -103,69 +128,4 @@
     {% endif %}
   </div>
 </div>
-
-<script>
-["dragenter", "dragover", "dragleave", "drop"].forEach(eventName => {
-  document.body.addEventListener(eventName, e => {
-    e.preventDefault();
-    e.stopPropagation();
-  }, false);
-});
-document.body.addEventListener("drop", e => {
-  const text = e.dataTransfer.getData("text");
-  if (text) parseQoS(text);
-});
-
-function parseQoS(text) {
-  const patterns = {
-    total_download: /Total Download Bandwidth, Kbps\s*\n\s*(\d+)/i,
-    voice_download: /Voice Download Bandwidth, Kbps\s*\n\s*(\d+)/i,
-    video_download: /Video Download Bandwidth, Kbps\s*\n\s*(\d+)/i,
-    data_platinum_download: /Data-Platinum Download Bandwidth, Kbps\s*\n\s*(\d+)/i,
-    data_gold_download: /Data-Gold Download Bandwidth, Kbps\s*\n\s*(\d+)/i,
-    data_silver_download: /Data-Silver Download Bandwidth, Kbps\s*\n\s*(\d+)/i,
-    data_bronze_download: /Data-Bronze Download Bandwidth, Kbps\s*\n\s*(\d+)/i
-  };
-  for (const [field, regex] of Object.entries(patterns)) {
-    const m = text.match(regex);
-    if (m) {
-      const input = document.querySelector(`[name=${field}]`);
-      if (input) input.value = m[1];
-    }
-  }
-}
-
-document.addEventListener('click', async function(e) {
-  const cell = e.target.closest('.copy-cell');
-  if (!cell) return;
-  const text = cell.textContent.trim();
-  if (!text) return;
-  try {
-    if (navigator.clipboard && navigator.clipboard.writeText) {
-      await navigator.clipboard.writeText(text);
-    } else {
-      const ta = document.createElement('textarea');
-      ta.value = text;
-      ta.setAttribute('readonly', '');
-      ta.style.position = 'absolute';
-      ta.style.left = '-9999px';
-      document.body.appendChild(ta);
-      ta.select();
-      const ok = document.execCommand('copy');
-      document.body.removeChild(ta);
-      if (!ok) throw new Error('execCommand failed');
-    }
-    cell.classList.add('bg-success', 'text-white');
-    setTimeout(() => cell.classList.remove('bg-success', 'text-white'), 800);
-  } catch (err) {
-    console.error('Error copying:', err);
-    const msg = document.createElement('div');
-    msg.className = 'alert alert-warning position-fixed end-0 m-3';
-    msg.style.zIndex = 9999;
-    msg.textContent = 'No se pudo copiar automáticamente.';
-    document.body.appendChild(msg);
-    setTimeout(() => { if (msg.parentNode) msg.parentNode.removeChild(msg); }, 3000);
-  }
-});
-</script>
 {% endblock %}
