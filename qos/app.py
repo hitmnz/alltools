@@ -64,6 +64,30 @@ def adjust_value_for_granularity(name, value_kbps, gran_enabled=None, gran_kbps=
         v = (v // 8) * 8
     return int(v)
 
+def restar_en_cascada(adjusted_values, diff, order, bronze_min):
+    """
+    Resta 'diff' kbps siguiendo el orden de prioridad en 'order'.
+    - Bronze nunca baja de bronze_min (según reglas de negocio).
+    - Si Bronze no alcanza, el resto se descuenta de las demás en cascada.
+    """
+    values = dict(adjusted_values)
+
+    for cname in order:
+        if diff <= 0:
+            break
+        if cname in values and values[cname] > 0:
+            if cname == "Data-Bronze":
+                # Bronze no baja del mínimo exigido
+                max_reducible = max(values[cname] - bronze_min, 0)
+                take = min(max_reducible, diff)
+            else:
+                take = min(values[cname], diff)
+
+            values[cname] -= take
+            diff -= take
+
+    return list(values.items())
+
 @app.route("/", methods=["GET", "POST"])
 def index():
     result = None
@@ -105,7 +129,7 @@ def index():
                 ("Data-Silver", silver),
                 ("Data-Bronze", bronze)
             ]
-
+            CLASSES_ORDER = ["Data-Bronze", "Data-Silver", "Data-Gold", "Data-Platinum", "Video", "Voice"]
             adjusted_values = []
             for name, kbps in raw:
                 adj = adjust_value_for_granularity(name, kbps, gran_enabled, gran_kbps)
@@ -113,36 +137,44 @@ def index():
                 
             # reglas de management
             management_kbps = 0
+
             if gestion == "gestionado":
                 if tipo_acceso == "indirecto":
-                    adjusted_values = [(n, v - management_kbps if n == "Data-Bronze" else v) for n, v in adjusted_values]
-                    management_kbps = 16  # 16k para indirecto gestionado
+                    management_kbps = 16
+                    bronze_min = 80
+                    adjusted_values = restar_en_cascada(adjusted_values, management_kbps, CLASSES_ORDER, bronze_min)
                     bronze = next((v for n, v in adjusted_values if n == "Data-Bronze"), 0)
-                    if bronze < 80:
-                        status = "error: Bronze en indirecto gestionado debe ser >= 80 Kbps"
-                else:
-                    management_kbps = 64  # 64k resto gestionados
+                    if bronze < bronze_min:
+                        status = f"error: Bronze en indirecto gestionado debe ser >= {bronze_min} Kbps"
+                else:  # gestionado directo
+                    management_kbps = 64
+                    bronze_min = 128
+                    adjusted_values = restar_en_cascada(adjusted_values, management_kbps, CLASSES_ORDER, bronze_min)
                     bronze = next((v for n, v in adjusted_values if n == "Data-Bronze"), 0)
-                    if bronze < 128:
-                        status = "error: Bronze en directo gestionado debe ser >= 128 Kbps"
-                # resta management del bronze
-                adjusted_values = [(n, v - management_kbps if n == "Data-Bronze" else v) for n, v in adjusted_values]
+                    if bronze < bronze_min:
+                        status = f"error: Bronze en directo gestionado debe ser >= {bronze_min} Kbps"
+
             elif gestion == "no_gestionado":
-                # mínimo bronze 128k
+                management_kbps = 64
+                bronze_min = 128
+                adjusted_values = restar_en_cascada(adjusted_values, management_kbps, CLASSES_ORDER, bronze_min)
                 bronze = next((v for n, v in adjusted_values if n == "Data-Bronze"), 0)
-                if bronze < 128:
-                    status = "error: Bronze en no gestionado debe ser >= 128 Kbps"
+                if bronze < bronze_min:
+                    status = f"error: Bronze en no gestionado debe ser >= {bronze_min} Kbps"
+
+            else:  # estándar
                 management_kbps = 64
-                adjusted_values = [(n, v - management_kbps if n == "Data-Bronze" else v) for n, v in adjusted_values]
-            else:
-                # estándar
-                management_kbps = 64
-                adjusted_values = [(n, v - management_kbps if n == "Data-Bronze" else v) for n, v in adjusted_values]
+                bronze_min = 64
+                adjusted_values = restar_en_cascada(adjusted_values, management_kbps, CLASSES_ORDER, bronze_min)
+                bronze = next((v for n, v in adjusted_values if n == "Data-Bronze"), 0)
+                if bronze < bronze_min:
+                    status = f"error: Bronze estándar debe ser >= {bronze_min} Kbps"
+
 
             gran_diff = int(total) - int(total_adjusted)
 
             if gran_diff > 0:
-                adjusted_values = [(n, v - gran_diff if n == "Data-Bronze" else v) for n, v in adjusted_values]            
+                adjusted_values = restar_en_cascada(adjusted_values, gran_diff, CLASSES_ORDER, bronze_min)         
 
             suma_clases = sum(val for _, val in adjusted_values) + management_kbps
 
