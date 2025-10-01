@@ -33,7 +33,11 @@
 
         <h4>Variables</h4>
         <div id="variable-groups" class="mb-3"></div>
-        <button type="button" class="btn btn-outline-primary mb-4" onclick="addGroup()">+ Añadir grupo de variables</button>
+
+        <div class="mb-4">
+            <button type="button" class="btn btn-outline-primary me-2" onclick="addGroup()">+ Añadir grupo de variables</button>
+            <button type="button" id="repeat-btn" class="btn btn-outline-warning d-none" onclick="repeatLastGroup()">⟳ Repetir grupo anterior</button> <!-- ⭐ añadido -->
+        </div>
 
         <h4>Resultado</h4>
         <textarea id="result" class="form-control mb-2" rows="10" readonly></textarea>
@@ -50,6 +54,7 @@
         const templateBox = document.getElementById("template");
         const resultBox = document.getElementById("result");
         const groupsDiv = document.getElementById("variable-groups");
+        const repeatBtn = document.getElementById("repeat-btn"); // ⭐ añadido
     
         let currentVariables = [];
     
@@ -140,6 +145,7 @@
             removeBtn.querySelector("button").addEventListener("click", () => {
                 wrapper.remove();
                 render();
+                toggleRepeatButton(); // ⭐ añadido
             });
     
             wrapper.appendChild(removeBtn);
@@ -150,6 +156,26 @@
             });
     
             render();
+            toggleRepeatButton(); // ⭐ añadido
+        }
+    
+        // ⭐ nuevo: función para repetir el último grupo
+        function repeatLastGroup() {
+            const groups = getGroups();
+            if (groups.length > 0) {
+                const lastGroup = groups[groups.length - 1];
+                addGroup(lastGroup);
+            }
+        }
+
+        // ⭐ nuevo: mostrar/ocultar el botón dependiendo de si hay grupos
+        function toggleRepeatButton() {
+            const groups = getGroups();
+            if (groups.length > 0) {
+                repeatBtn.classList.remove("d-none");
+            } else {
+                repeatBtn.classList.add("d-none");
+            }
         }
     
         function getGroups() {
@@ -190,18 +216,14 @@
         }
     
         function clearAll() {
-            // Limpiar los campos de plantilla, variables y resultado
             templateBox.value = ""; 
             groupsDiv.innerHTML = "";
             resultBox.value = "";
             currentVariables = [];
-
-            // Limpiar el campo de archivo de plantilla (input de tipo file)
-            document.getElementById("templateFile").value = ""; // <-- esta línea borra el archivo seleccionado
-            document.getElementById("csvFile").value = ""; // <-- esta línea borra el fichero csv seleccionado
-}
-
-
+            document.getElementById("templateFile").value = "";
+            document.getElementById("csvFile").value = "";
+            toggleRepeatButton(); // ⭐ añadido
+        }
     
         function copyResult() {
             navigator.clipboard.writeText(resultBox.value)
