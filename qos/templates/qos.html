@@ -35,21 +35,6 @@
             <input type="number" class="form-control" name="data_bronze_download" value="{{ defaults.data_bronze_download }}">
           </div>
 
-          <div class="mb-3 form-check form-switch"> 
-            <input class="form-check-input" type="checkbox" id="granularity_enabled" name="granularity_enabled" {% if defaults.granularity_enabled %}checked{% endif %}>
-            <label class="form-check-label" for="granularity_enabled">Calcular granularidad</label>
-          </div>
-
-          <div class="mb-3">
-            <label class="form-label">Tipo de tarjeta</label>
-            <select class="form-select" name="card_type">
-              <option value="" {% if not defaults.card_type %}selected{% endif %}>-- Selecionar --</option>
-              <option value="1g" {% if defaults.card_type=='1g' %}selected{% endif %}>1g</option>
-              <option value="10g" {% if defaults.card_type=='10g' %}selected{% endif %}>10g</option>
-              <option value="100g" {% if defaults.card_type=='100g' %}selected{% endif %}>100g</option>
-            </select>
-          </div>
-
           <!-- NUEVO: Selección de Gestión -->
           <div class="mb-3">
             <label class="form-label">Gestión</label>
@@ -111,9 +96,6 @@
         <div class="mb-2"><strong>Total:</strong> <span class="copy-cell">{{ result.total|round|int }}</span> Kbps</div>
         <div class="mb-2"><strong>Total Burst-size:</strong> <span class="copy-cell">{{ result.burst_size }}</span></div>
         <div class="mb-2"><strong>Total Peak-burst:</strong> <span class="copy-cell">{{ result.peak_burst }}</span></div>
-        {% if result.gran_enabled %}
-        <div class="mb-2"><strong>Granularidad aplicada:</strong> {{ result.gran_kbps }} Kbps (tarjeta {{ result.card_type }})</div>
-        {% endif %}
         {% if status == "correcto" %}
           <div class="alert alert-success">✔ La suma coincide con el total ({{ result.suma }} Kbps)</div>
         {% elif status == "incorrecto" %}
@@ -143,19 +125,22 @@ document.body.addEventListener("drop", e => {
 
 function parseQoS(text) {
   const patterns = {
-    total_download: /Total Download Bandwidth, Kbps\s*\n\s*(\d+)/i,
-    voice_download: /Voice Download Bandwidth, Kbps\s*\n\s*(\d+)/i,
-    video_download: /Video Download Bandwidth, Kbps\s*\n\s*(\d+)/i,
-    data_platinum_download: /Data-Platinum Download Bandwidth, Kbps\s*\n\s*(\d+)/i,
-    data_gold_download: /Data-Gold Download Bandwidth, Kbps\s*\n\s*(\d+)/i,
-    data_silver_download: /Data-Silver Download Bandwidth, Kbps\s*\n\s*(\d+)/i,
-    data_bronze_download: /Data-Bronze Download Bandwidth, Kbps\s*\n\s*(\d+)/i
+    total_download: /Total Download Bandwidth, Kbps\s*\n\s*(\d+)|Total.*?(\d+)/i,
+    voice_download: /Voice Download Bandwidth, Kbps\s*\n\s*(\d+)|Voice.*?(\d+)/i,
+    video_download: /Video Download Bandwidth, Kbps\s*\n\s*(\d+)|Video.*?(\d+)/i,
+    data_platinum_download: /(?:Data[-\s]*)?Platinum(?: Download Bandwidth, Kbps)?\s*\n?\s*(\d+)/i,
+    data_gold_download: /(?:Data[-\s]*)?Gold(?: Download Bandwidth, Kbps)?\s*\n?\s*(\d+)/i,
+    data_silver_download: /(?:Data[-\s]*)?Silver(?: Download Bandwidth, Kbps)?\s*\n?\s*(\d+)/i,
+    data_bronze_download: /(?:Data[-\s]*)?Bronze(?: Download Bandwidth, Kbps)?\s*\n?\s*(\d+)/i
   };
+
+
   for (const [field, regex] of Object.entries(patterns)) {
     const m = text.match(regex);
     if (m) {
+      const value = m[1] || m[2];
       const input = document.querySelector(`[name=${field}]`);
-      if (input) input.value = m[1];
+      if (input) input.value = value;
     }
   }
 }

@@ -69,20 +69,20 @@ function setupDropZone(zoneId, prefix) {
     zone.classList.remove("border", "border-primary");
     const text = e.dataTransfer.getData("text");
     if (!text) return;
-    const regexMap = {
-      voice: /Voice Download Bandwidth, Kbps\s*\n\s*(\d+)/i,
-      video: /Video Download Bandwidth, Kbps\s*\n\s*(\d+)/i,
-      platinum: /Data-Platinum Download Bandwidth, Kbps\s*\n\s*(\d+)/i,
-      gold: /Data-Gold Download Bandwidth, Kbps\s*\n\s*(\d+)/i,
-      silver: /Data-Silver Download Bandwidth, Kbps\s*\n\s*(\d+)/i,
-      bronze: /Data-Bronze Download Bandwidth, Kbps\s*\n\s*(\d+)/i,
-      total: /Total Download Bandwidth, Kbps\s*\n\s*(\d+)/i,
+    const patterns = {
+      total: /Total Download Bandwidth, Kbps\s*\n\s*(\d+)|Total.*?(\d+)/i,
+      voice: /Voice Download Bandwidth, Kbps\s*\n\s*(\d+)|Voice.*?(\d+)/i,
+      video: /Video Download Bandwidth, Kbps\s*\n\s*(\d+)|Video.*?(\d+)/i,
+      platinum: /(?:Data[-\s]*)?Platinum(?: Download Bandwidth, Kbps)?\s*\n?\s*(\d+)/i,
+      gold: /(?:Data[-\s]*)?Gold(?: Download Bandwidth, Kbps)?\s*\n?\s*(\d+)/i,
+      silver: /(?:Data[-\s]*)?Silver(?: Download Bandwidth, Kbps)?\s*\n?\s*(\d+)/i,
+      bronze: /(?:Data[-\s]*)?Bronze(?: Download Bandwidth, Kbps)?\s*\n?\s*(\d+)/i
     };
-    for (const [key, regex] of Object.entries(regexMap)) {
+    for (const [key, regex] of Object.entries(patterns)) {
       const m = text.match(regex);
       if (m) {
         const el = document.getElementById(`${key}_${prefix}`);
-        if (el) el.value = m[1];
+        if (el) el.value = m[1] || m[2];
       }
     }
   });
