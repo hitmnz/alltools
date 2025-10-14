@@ -2,32 +2,31 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <title>JSON a XML Converter</title>
+  <title>Convertidor de JSON a XML</title>
   <link href="https://cdn.jsdelivr.net/npm/bootswatch@5.3.3/dist/litera/bootstrap.min.css" rel="stylesheet">
 </head>
-<body class="bg-light">
+<body class="bg-white">
   <div class="container-fluid">
-        <nav class="navbar navbar-expand-lg bg-white mb-4" style="padding-top: 1rem; padding-bottom: 1rem;">
+      <nav class="navbar navbar-expand-lg bg-white mb-1 mt-0 me-5" style="padding-top: 1rem; padding-bottom: 1rem;">
         <div class="d-flex justify-content-between align-items-center w-100 px-6 flex-grow-1">
-        <a class="navbar-brand form-label fs-2 mb-4 fw-bold" href="/">Conversor JSON → XML</a>
-        <a class="btn btn-outline-primary btn-sm" href="/">Home</a>
+          <a class="navbar-brand form-label fs-3 mb-1 fw-bold" href="/">Convertidor de JSON a XML</a>
+          <a class="btn btn-outline-primary btn-sm" href="/">Home</a>
         </div>
-        </div>
-    </nav>
+      </nav>
     <form method="post" id="converterForm">
       <div class="container-fluid d-flex justify-content-center">
         <div class="col-md-6 fw-bold">
-          <label class="form-label">Pegue su JSON:</label>
+          <label class="form-label">JSON:</label>
           <textarea id="json_input" name="json_input" class="form-control" rows="20">{{ json_input }}</textarea>
         </div>
         <div class="col-md-6 fw-bold">
-          <label class="form-label">Resultado en XML:</label>
+          <label class="form-label">XML:</label>
           <textarea id="xml_output" readonly class="form-control bg-dark text-light" rows="20">{{ xml_output }}</textarea>
         </div>
       </div>
       <div class="text-center mt-3 d-flex justify-content-center gap-2">
         <button type="submit" class="btn btn-primary px-4">Convertir</button>
-        <button type="button" id="clearBtn" class="btn btn-secondary px-4">Clear</button>
+        <button type="button" id="clearBtn" class="btn btn-secondary px-4">Limpiar</button>
       </div>
     </form>
   </div>
