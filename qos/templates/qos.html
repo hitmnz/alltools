@@ -5,62 +5,102 @@
     <div class="custom-card h-100">
       <h4 class="card-title text-primary mb-4"><i class="bi bi-sliders2"></i> Parámetros QoS</h4>
       <form method="POST">
-        <div class="mb-3">
-          <label class="form-label small fw-bold text-muted mb-1">Total Download (Kbps)</label>
-          <input type="number" class="form-control form-control-sm bg-light border-light shadow-sm"
-            name="total_download" value="{{ defaults.total_download }}">
-        </div>
-        <div class="mb-3">
-          <label class="form-label small fw-bold text-muted mb-1">Voice Download (Kbps)</label>
-          <input type="number" class="form-control form-control-sm bg-light border-light shadow-sm"
-            name="voice_download" value="{{ defaults.voice_download }}">
-        </div>
-        <div class="mb-3">
-          <label class="form-label small fw-bold text-muted mb-1">Video Download (Kbps)</label>
-          <input type="number" class="form-control form-control-sm bg-light border-light shadow-sm"
-            name="video_download" value="{{ defaults.video_download }}">
-        </div>
-        <div class="mb-3">
-          <label class="form-label small fw-bold text-muted mb-1">Data-Platinum Download (Kbps)</label>
-          <input type="number" class="form-control form-control-sm bg-light border-light shadow-sm"
-            name="data_platinum_download" value="{{ defaults.data_platinum_download }}">
-        </div>
-        <div class="mb-3">
-          <label class="form-label small fw-bold text-muted mb-1">Data-Gold Download (Kbps)</label>
-          <input type="number" class="form-control form-control-sm bg-light border-light shadow-sm"
-            name="data_gold_download" value="{{ defaults.data_gold_download }}">
-        </div>
-        <div class="mb-3">
-          <label class="form-label small fw-bold text-muted mb-1">Data-Silver Download (Kbps)</label>
-          <input type="number" class="form-control form-control-sm bg-light border-light shadow-sm"
-            name="data_silver_download" value="{{ defaults.data_silver_download }}">
-        </div>
-        <div class="mb-3">
-          <label class="form-label small fw-bold text-muted mb-1">Data-Bronze Download (Kbps)</label>
-          <input type="number" class="form-control form-control-sm bg-light border-light shadow-sm"
-            name="data_bronze_download" value="{{ defaults.data_bronze_download }}">
+        <div class="accordion mb-4 shadow-sm" id="qosFormAccordion">
+          <!-- Sección 1: Capacidad Total & Servicios Multimedia -->
+          <div class="accordion-item border-0">
+            <h2 class="accordion-header" id="headingServices">
+              <button class="accordion-button fw-bold" type="button" data-bs-toggle="collapse"
+                data-bs-target="#collapseServices" aria-expanded="true" aria-controls="collapseServices">
+                <i class="bi bi-hdd-network text-primary me-2"></i> 1. Capacidad y Multimedia (Voz/Vídeo)
+              </button>
+            </h2>
+            <div id="collapseServices" class="accordion-collapse collapse show" aria-labelledby="headingServices">
+              <div class="accordion-body bg-light bg-opacity-50">
+                <div class="mb-3">
+                  <label class="form-label small fw-bold text-muted mb-1">Total Download (Kbps)</label>
+                  <input type="number" class="form-control form-control-sm shadow-sm"
+                    name="total_download" value="{{ defaults.total_download }}">
+                </div>
+                <div class="mb-3">
+                  <label class="form-label small fw-bold text-muted mb-1">Voice Download (Kbps)</label>
+                  <input type="number" class="form-control form-control-sm shadow-sm"
+                    name="voice_download" value="{{ defaults.voice_download }}">
+                </div>
+                <div class="mb-1">
+                  <label class="form-label small fw-bold text-muted mb-1">Video Download (Kbps)</label>
+                  <input type="number" class="form-control form-control-sm shadow-sm"
+                    name="video_download" value="{{ defaults.video_download }}">
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Sección 2: Clases de Datos -->
+          <div class="accordion-item border-0">
+            <h2 class="accordion-header" id="headingData">
+              <button class="accordion-button fw-bold" type="button" data-bs-toggle="collapse"
+                data-bs-target="#collapseData" aria-expanded="true" aria-controls="collapseData">
+                <i class="bi bi-layers text-success me-2"></i> 2. Clases de Datos (Oro/Plata/Bronce)
+              </button>
+            </h2>
+            <div id="collapseData" class="accordion-collapse collapse show" aria-labelledby="headingData">
+              <div class="accordion-body bg-light bg-opacity-50">
+                <div class="mb-3">
+                  <label class="form-label small fw-bold text-muted mb-1">Data-Platinum Download (Kbps)</label>
+                  <input type="number" class="form-control form-control-sm shadow-sm"
+                    name="data_platinum_download" value="{{ defaults.data_platinum_download }}">
+                </div>
+                <div class="mb-3">
+                  <label class="form-label small fw-bold text-muted mb-1">Data-Gold Download (Kbps)</label>
+                  <input type="number" class="form-control form-control-sm shadow-sm"
+                    name="data_gold_download" value="{{ defaults.data_gold_download }}">
+                </div>
+                <div class="mb-3">
+                  <label class="form-label small fw-bold text-muted mb-1">Data-Silver Download (Kbps)</label>
+                  <input type="number" class="form-control form-control-sm shadow-sm"
+                    name="data_silver_download" value="{{ defaults.data_silver_download }}">
+                </div>
+                <div class="mb-1">
+                  <label class="form-label small fw-bold text-muted mb-1">Data-Bronze Download (Kbps)</label>
+                  <input type="number" class="form-control form-control-sm shadow-sm"
+                    name="data_bronze_download" value="{{ defaults.data_bronze_download }}">
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Sección 3: Gestión y Tipo de Acceso -->
+          <div class="accordion-item border-0">
+            <h2 class="accordion-header" id="headingMgmt">
+              <button class="accordion-button fw-bold collapsed" type="button" data-bs-toggle="collapse"
+                data-bs-target="#collapseMgmt" aria-expanded="false" aria-controls="collapseMgmt">
+                <i class="bi bi-gear-wide-connected text-secondary me-2"></i> 3. Gestión y Tipo de Acceso
+              </button>
+            </h2>
+            <div id="collapseMgmt" class="accordion-collapse collapse" aria-labelledby="headingMgmt">
+              <div class="accordion-body bg-light bg-opacity-50">
+                <div class="mb-3">
+                  <label class="form-label small fw-bold text-muted mb-1">Gestión</label>
+                  <select class="form-select form-select-sm shadow-sm" name="gestion">
+                    <option value="" {% if not defaults.gestion %}selected{% endif %}>-- Seleccionar --</option>
+                    <option value="gestionado" {% if defaults.gestion=='gestionado' %}selected{% endif %}>Gestionado</option>
+                    <option value="no_gestionado" {% if defaults.gestion=='no_gestionado' %}selected{% endif %}>No gestionado</option>
+                  </select>
+                </div>
+                <div class="mb-1">
+                  <label class="form-label small fw-bold text-muted mb-1">Tipo de acceso</label>
+                  <select class="form-select form-select-sm shadow-sm" name="tipo_acceso">
+                    <option value="" {% if not defaults.tipo_acceso %}selected{% endif %}>-- Seleccionar --</option>
+                    <option value="directo" {% if defaults.tipo_acceso=='directo' %}selected{% endif %}>Directo</option>
+                    <option value="indirecto" {% if defaults.tipo_acceso=='indirecto' %}selected{% endif %}>Indirecto</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
 
-        <div class="mb-3">
-          <label class="form-label small fw-bold text-muted mb-1">Gestión</label>
-          <select class="form-select form-select-sm bg-light border-light shadow-sm" name="gestion">
-            <option value="" {% if not defaults.gestion %}selected{% endif %}>-- Seleccionar --</option>
-            <option value="gestionado" {% if defaults.gestion=='gestionado' %}selected{% endif %}>Gestionado</option>
-            <option value="no_gestionado" {% if defaults.gestion=='no_gestionado' %}selected{% endif %}>No gestionado
-            </option>
-          </select>
-        </div>
-
-        <div class="mb-4">
-          <label class="form-label small fw-bold text-muted mb-1">Tipo de acceso</label>
-          <select class="form-select form-select-sm bg-light border-light shadow-sm" name="tipo_acceso">
-            <option value="" {% if not defaults.tipo_acceso %}selected{% endif %}>-- Seleccionar --</option>
-            <option value="directo" {% if defaults.tipo_acceso=='directo' %}selected{% endif %}>Directo</option>
-            <option value="indirecto" {% if defaults.tipo_acceso=='indirecto' %}selected{% endif %}>Indirecto</option>
-          </select>
-        </div>
-
-        <div class="d-flex justify-content-between mt-4">
+        <div class="d-flex justify-content-between mt-3">
           <button type="submit" class="btn btn-primary rounded-pill px-4 shadow-sm"><i
               class="bi bi-calculator me-1"></i> Calcular</button>
           <button type="submit" name="clear" value="1" class="btn btn-outline-secondary rounded-pill px-4 shadow-sm"><i
@@ -145,8 +185,28 @@
         <div class="custom-card">
           <h4 class="card-title text-primary"><i class="bi bi-layers-fill"></i> Calculadora QoS_4 colas <small
               class="text-muted fw-normal fs-6 ms-2">(Tabla agrupada - Clic para copiar)</small></h4>
+
+          <!-- Barra visual de distribución del 100% -->
+          <div class="mb-3 mt-3">
+            <div class="d-flex justify-content-between align-items-center mb-1">
+              <span class="small fw-bold text-secondary"><i class="bi bi-pie-chart-fill me-1"></i> Reparto visual del enlace (100%)</span>
+              <span class="small text-muted">{{ result.total }} Kbps</span>
+            </div>
+            <div class="progress shadow-sm rounded-pill" style="height: 24px; font-size: 0.8rem;">
+              {% for c in result.qos_4_colas %}
+                {% if c.name != 'TOTAL' and c.percent > 0 %}
+                <div class="progress-bar {% if c.name == 'clase_ef' %}bg-success{% elif c.name == 'clase_nc' %}bg-danger{% elif c.name == 'clase_af' %}bg-primary{% else %}bg-secondary{% endif %} fw-bold"
+                  role="progressbar" style="width: {{ c.percent }}%;"
+                  title="{{ c.name }} ({{ c.description }}): {{ c.percent }}%">
+                  {% if c.percent >= 8 %}{{ c.name }} ({{ c.percent }}%){% endif %}
+                </div>
+                {% endif %}
+              {% endfor %}
+            </div>
+          </div>
+
           <div class="table-responsive">
-            <table class="table table-hover table-bordered align-middle mt-3 mb-0">
+            <table class="table table-hover table-bordered align-middle mt-2 mb-0">
               <thead class="table-light text-muted small">
                 <tr>
                   <th style="width: 32%;">Clase</th>
