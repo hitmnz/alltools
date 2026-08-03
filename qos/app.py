@@ -393,19 +393,30 @@ def compare():
 def render_jinja():
     data = request.get_json()
     template_str = data.get("template", "")
-    variables = data.get("variables", {})
+    auto_vars = data.get("variables", {})
+    manual_vars = data.get("manual_variables", {})
+    merged_vars = {**auto_vars, **manual_vars}
     if not template_str.strip():
-        return jsonify({"result": "", "status": "success"})
+        return jsonify({"result": "", "status": "success", "missing_vars": []})
     try:
+        from jinja2 import Environment, BaseLoader, meta, Undefined
+        class KeepUndefined(Undefined):
+            def __str__(self):
+                return f"{{{{ {self._undefined_name} }}}}"
+
         env = Environment(
             loader=BaseLoader(),
             trim_blocks=True,
-            lstrip_blocks=True
+            lstrip_blocks=True,
+            undefined=KeepUndefined
         )
-        template_str_unescaped = template_str.replace("\\", "\\\\")
-        template = env.from_string(template_str_unescaped)
-        rendered = template.render(variables)
+        ast = env.parse(template_str)
+        all_vars = meta.find_undeclared_variables(ast)
+        missing = sorted([v for v in all_vars if v not in auto_vars and v.lower() not in auto_vars and v.upper() not in auto_vars])
+
+        template = env.from_string(template_str)
+        rendered = template.render(merged_vars)
         rendered = re.sub(r'\n\s*\n+', '\n\n', rendered.strip())
-        return jsonify({"result": rendered, "status": "success"})
+        return jsonify({"result": rendered, "status": "success", "missing_vars": missing})
     except Exception as e:
-        return jsonify({"result": f"[Error en la plantilla Jinja: {e}]", "status": "error"}), 400
+        return jsonify({"result": f"[Error en la plantilla Jinja: {e}]", "status": "error", "missing_vars": []}), 400

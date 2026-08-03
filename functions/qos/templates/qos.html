@@ -230,6 +230,15 @@
           <textarea id="jinja-template-input" class="form-control font-monospace mb-0 shadow-sm" rows="10" placeholder="Pega aquí tu plantilla Jinja2. Ejemplo:&#10;set class-of-service schedulers class_voice transmit-rate {{ '{{' }} VOICE_DOWN_BANDWIDTH_B {{ '}}' }};&#10;set class-of-service traffic-control-profiles Shaping shaping-rate {{ '{{' }} TOTAL_DOWN_BANDWIDTH_B {{ '}}' }};"></textarea>
         </div>
 
+        <div id="missing-vars-card" class="custom-card border-warning border-2 bg-light mb-4 shadow-sm" style="display: none;">
+          <div class="d-flex align-items-center justify-content-between mb-2">
+            <h6 class="mb-0 fw-bold text-dark"><i class="bi bi-exclamation-triangle-fill text-warning me-2"></i>Variables no encontradas (Relleno manual disponible)</h6>
+            <span class="badge bg-warning text-dark">Relleno en tiempo real</span>
+          </div>
+          <p class="small text-muted mb-3">Las siguientes variables presentes en tu plantilla no proceden automáticamente de la calculadora. Puedes rellenarlas aquí abajo para reemplazarlas instantáneamente en la configuración:</p>
+          <div id="missing-vars-container" class="row g-2"></div>
+        </div>
+
         <div class="custom-card">
           <div class="d-flex justify-content-between align-items-center mb-3">
             <h5 class="card-title mb-0 text-success"><i class="bi bi-terminal me-2"></i>Resultado Reemplazado</h5>
@@ -330,11 +339,59 @@
     });
   }
 
+  window.manualJinjaVars = window.manualJinjaVars || {};
+
+  function hideMissingVarsUI() {
+    const card = document.getElementById('missing-vars-card');
+    if (card) card.style.display = 'none';
+    window._lastMissingStr = '';
+  }
+
+  function updateMissingVarsUI(missingVars) {
+    const card = document.getElementById('missing-vars-card');
+    const container = document.getElementById('missing-vars-container');
+    if (!card || !container) return;
+
+    if (!missingVars || missingVars.length === 0) {
+      card.style.display = 'none';
+      window._lastMissingStr = '';
+      return;
+    }
+
+    card.style.display = 'block';
+
+    const missingStr = JSON.stringify(missingVars);
+    if (window._lastMissingStr === missingStr) return;
+    window._lastMissingStr = missingStr;
+
+    container.innerHTML = '';
+    missingVars.forEach(varName => {
+      const col = document.createElement('div');
+      col.className = 'col-md-6 col-lg-4';
+      const val = window.manualJinjaVars[varName] || '';
+      col.innerHTML = `
+        <div class="input-group input-group-sm">
+          <span class="input-group-text fw-bold text-secondary bg-white">${varName}</span>
+          <input type="text" class="form-control manual-var-input" data-var="${varName}" placeholder="Escribe para reemplazar..." value="${val}">
+        </div>
+      `;
+      container.appendChild(col);
+    });
+
+    container.querySelectorAll('.manual-var-input').forEach(input => {
+      input.addEventListener('input', (e) => {
+        window.manualJinjaVars[e.target.dataset.var] = e.target.value;
+        renderJinjaLive();
+      });
+    });
+  }
+
   async function renderJinjaLive() {
     if (!jinjaInput || !jinjaOutput) return;
     const templateText = jinjaInput.value;
     if (!templateText.trim()) {
       jinjaOutput.value = "";
+      hideMissingVarsUI();
       return;
     }
     try {
@@ -343,18 +400,22 @@
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           template: templateText,
-          variables: window.qosJinjaVars || {}
+          variables: window.qosJinjaVars || {},
+          manual_variables: window.manualJinjaVars || {}
         })
       });
       const data = await res.json();
       if (!res.ok || data.status === "error") {
         jinjaOutput.value = data.result || `[Error HTTP ${res.status}]`;
+        hideMissingVarsUI();
       } else {
         jinjaOutput.value = data.result;
+        updateMissingVarsUI(data.missing_vars || []);
       }
     } catch (err) {
       console.error("Error al renderizar Jinja:", err);
       jinjaOutput.value = "[Error en la comunicación con el servidor al renderizar Jinja]";
+      hideMissingVarsUI();
     }
   }
 
