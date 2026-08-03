@@ -93,11 +93,14 @@ def index():
             if diff > 0:
                 adjusted_values = restar_en_cascada(adjusted_values, diff, CLASSES_ORDER, bronze_min)
 
+            def calc_perc(val):
+                return int(round((val / total * 100) if total else 0))
+
             # Construcción datos para template
             suma_clases = sum(v for _, v in adjusted_values) + management_kbps
             classes = []
             for name, adj in adjusted_values:
-                percent = (adj / total * 100) if total else 0
+                percent = calc_perc(adj)
                 classes.append({
                     "name": name,
                     "kbps": int(adj),
@@ -109,7 +112,7 @@ def index():
             classes.append({
                 "name": "Management",
                 "kbps": int(management_kbps),
-                "percent": (management_kbps / total * 100) if total else 0,
+                "percent": calc_perc(management_kbps),
                 "burst_size": round(management_kbps * 0.1875 * 1000),
                 "peak_burst": round(management_kbps * 0.375 * 1000)
             })
@@ -153,54 +156,39 @@ def index():
                     "kbps": int(total),
                     "percent": 100,
                     "burst_size": total_burst,
-                    "peak_burst": total_peak,
-                    "badge_bg": "#002060",
-                    "badge_text": "#ffffff",
-                    "row_bg": "#d9e1f2"
+                    "peak_burst": total_peak
                 },
                 {
                     "name": "clase_ef",
                     "description": "Voz",
                     "kbps": ef_kbps,
-                    "percent": clean_num(round((ef_kbps / total * 100) if total else 0, 1)),
+                    "percent": calc_perc(ef_kbps),
                     "burst_size": round(ef_kbps * 0.1875 * 1000),
-                    "peak_burst": round(ef_kbps * 0.375 * 1000),
-                    "badge_bg": "#c6e0b4",
-                    "badge_text": "#1e4620",
-                    "row_bg": "#ffffff"
+                    "peak_burst": round(ef_kbps * 0.375 * 1000)
                 },
                 {
                     "name": "clase_nc",
                     "description": "Management + Video",
                     "kbps": nc_kbps,
-                    "percent": clean_num(round((nc_kbps / total * 100) if total else 0, 1)),
+                    "percent": calc_perc(nc_kbps),
                     "burst_size": round(nc_kbps * 0.1875 * 1000),
-                    "peak_burst": round(nc_kbps * 0.375 * 1000),
-                    "badge_bg": "#c00000",
-                    "badge_text": "#ffffff",
-                    "row_bg": "#ffffff"
+                    "peak_burst": round(nc_kbps * 0.375 * 1000)
                 },
                 {
                     "name": "clase_af",
                     "description": "Platinum + Gold",
                     "kbps": af_kbps,
-                    "percent": clean_num(round((af_kbps / total * 100) if total else 0, 1)),
+                    "percent": calc_perc(af_kbps),
                     "burst_size": round(af_kbps * 0.1875 * 1000),
-                    "peak_burst": round(af_kbps * 0.375 * 1000),
-                    "badge_bg": "#d9d9d9",
-                    "badge_text": "#212529",
-                    "row_bg": "#ffffff"
+                    "peak_burst": round(af_kbps * 0.375 * 1000)
                 },
                 {
                     "name": "clase_be",
                     "description": "Silver + Bronze",
                     "kbps": be_kbps,
-                    "percent": clean_num(round((be_kbps / total * 100) if total else 0, 1)),
+                    "percent": calc_perc(be_kbps),
                     "burst_size": round(be_kbps * 0.1875 * 1000),
-                    "peak_burst": round(be_kbps * 0.375 * 1000),
-                    "badge_bg": "#806000",
-                    "badge_text": "#ffffff",
-                    "row_bg": "#ffffff"
+                    "peak_burst": round(be_kbps * 0.375 * 1000)
                 }
             ]
 
@@ -244,13 +232,13 @@ def index():
                 "MANAGE_PEAK": int(round(manage_adj * 0.375 * 1000)),
 
                 # Porcentajes
-                "VOICE_BW_PERC": clean_num(round((voice_adj / total * 100) if total else 0, 1)),
-                "VIDEO_BW_PERC": clean_num(round((video_adj / total * 100) if total else 0, 1)),
-                "PLATINUM_BW_PERC": clean_num(round((platinum_adj / total * 100) if total else 0, 1)),
-                "GOLD_BW_PERC": clean_num(round((gold_adj / total * 100) if total else 0, 1)),
-                "SILVER_BW_PERC": clean_num(round((silver_adj / total * 100) if total else 0, 1)),
-                "BRONZE_BW_PERC": clean_num(round((bronze_adj / total * 100) if total else 0, 1)),
-                "MANAGE_BW_PERC": clean_num(round((manage_adj / total * 100) if total else 0, 1)),
+                "VOICE_BW_PERC": calc_perc(voice_adj),
+                "VIDEO_BW_PERC": calc_perc(video_adj),
+                "PLATINUM_BW_PERC": calc_perc(platinum_adj),
+                "GOLD_BW_PERC": calc_perc(gold_adj),
+                "SILVER_BW_PERC": calc_perc(silver_adj),
+                "BRONZE_BW_PERC": calc_perc(bronze_adj),
+                "MANAGE_BW_PERC": calc_perc(manage_adj),
 
                 # Kbps
                 "TOTAL_KBPS": int(total),
@@ -265,39 +253,39 @@ def index():
                 # 4 colas (ef, nc, af, be)
                 "CLASE_EF_B": int(ef_kbps * 1000),
                 "CLASE_EF_KBPS": int(ef_kbps),
-                "CLASE_EF_PERC": clean_num(round((ef_kbps / total * 100) if total else 0, 1)),
+                "CLASE_EF_PERC": calc_perc(ef_kbps),
                 "CLASE_EF_BURST": int(round(ef_kbps * 0.1875 * 1000)),
                 "CLASE_EF_PEAK": int(round(ef_kbps * 0.375 * 1000)),
                 "clase_ef": int(ef_kbps * 1000),
                 "clase_ef_kbps": int(ef_kbps),
-                "clase_ef_perc": clean_num(round((ef_kbps / total * 100) if total else 0, 1)),
+                "clase_ef_perc": calc_perc(ef_kbps),
 
                 "CLASE_NC_B": int(nc_kbps * 1000),
                 "CLASE_NC_KBPS": int(nc_kbps),
-                "CLASE_NC_PERC": clean_num(round((nc_kbps / total * 100) if total else 0, 1)),
+                "CLASE_NC_PERC": calc_perc(nc_kbps),
                 "CLASE_NC_BURST": int(round(nc_kbps * 0.1875 * 1000)),
                 "CLASE_NC_PEAK": int(round(nc_kbps * 0.375 * 1000)),
                 "clase_nc": int(nc_kbps * 1000),
                 "clase_nc_kbps": int(nc_kbps),
-                "clase_nc_perc": clean_num(round((nc_kbps / total * 100) if total else 0, 1)),
+                "clase_nc_perc": calc_perc(nc_kbps),
 
                 "CLASE_AF_B": int(af_kbps * 1000),
                 "CLASE_AF_KBPS": int(af_kbps),
-                "CLASE_AF_PERC": clean_num(round((af_kbps / total * 100) if total else 0, 1)),
+                "CLASE_AF_PERC": calc_perc(af_kbps),
                 "CLASE_AF_BURST": int(round(af_kbps * 0.1875 * 1000)),
                 "CLASE_AF_PEAK": int(round(af_kbps * 0.375 * 1000)),
                 "clase_af": int(af_kbps * 1000),
                 "clase_af_kbps": int(af_kbps),
-                "clase_af_perc": clean_num(round((af_kbps / total * 100) if total else 0, 1)),
+                "clase_af_perc": calc_perc(af_kbps),
 
                 "CLASE_BE_B": int(be_kbps * 1000),
                 "CLASE_BE_KBPS": int(be_kbps),
-                "CLASE_BE_PERC": clean_num(round((be_kbps / total * 100) if total else 0, 1)),
+                "CLASE_BE_PERC": calc_perc(be_kbps),
                 "CLASE_BE_BURST": int(round(be_kbps * 0.1875 * 1000)),
                 "CLASE_BE_PEAK": int(round(be_kbps * 0.375 * 1000)),
                 "clase_be": int(be_kbps * 1000),
                 "clase_be_kbps": int(be_kbps),
-                "clase_be_perc": clean_num(round((be_kbps / total * 100) if total else 0, 1)),
+                "clase_be_perc": calc_perc(be_kbps),
             }
 
             for key in list(jinja_vars.keys()):

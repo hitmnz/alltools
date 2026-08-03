@@ -158,11 +158,11 @@
               </thead>
               <tbody>
                 {% for c in result.qos_4_colas %}
-                <tr style="background-color: {{ c.row_bg }};">
-                  <td class="fw-bold" style="background-color: {{ c.badge_bg }}; color: {{ c.badge_text }}; border-radius: 4px;">
-                    <div class="d-flex justify-content-between align-items-center px-1">
+                <tr>
+                  <td class="fw-bold text-secondary">
+                    <div class="d-flex justify-content-between align-items-center">
                       <span>{{ c.name }}</span>
-                      <small style="opacity: 0.9; font-weight: 500;">{{ c.description }}</small>
+                      <small class="text-muted fw-normal">{{ c.description }}</small>
                     </div>
                   </td>
                   <td class="copy-cell text-primary fw-bold" style="cursor: pointer;" title="Copiar">{{ c.percent }}%</td>
@@ -338,7 +338,7 @@
       return;
     }
     try {
-      const res = await fetch('/render_jinja', {
+      const res = await fetch('{{ url_for("qos.render_jinja") }}', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -347,7 +347,11 @@
         })
       });
       const data = await res.json();
-      jinjaOutput.value = data.result;
+      if (!res.ok || data.status === "error") {
+        jinjaOutput.value = data.result || `[Error HTTP ${res.status}]`;
+      } else {
+        jinjaOutput.value = data.result;
+      }
     } catch (err) {
       console.error("Error al renderizar Jinja:", err);
       jinjaOutput.value = "[Error en la comunicación con el servidor al renderizar Jinja]";
